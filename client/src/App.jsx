@@ -1,218 +1,160 @@
-// import React, { useState, useEffect } from 'react';
-// import { useEth } from './contexts/EthContext';
-// import UserListContract from './contracts/UserList.json';
+// import React, { useState, useEffect } from "react";
+// import Web3 from "web3";
+// import "./App.css";
+// import ContractInteraction from "./components/ContractInteraction";
+// import deployedContracts from "./deployedContracts.json";
 
-// import './App.css';
-
-// const App = () => {
-//   const eth = useEth();
-//   const web3 = eth?.web3;
-//   const accounts = eth?.accounts;
-//   const [contract, setContract] = useState(null);
-//   const [users, setUsers] = useState({});
-//   const [userCount, setUserCount] = useState(0);
-//   const [newName, setNewName] = useState('');
-//   const [updateId, setUpdateId] = useState('');
-//   const [updateName, setUpdateName] = useState('');
-//   // ... rest of the state variables and functions
+// function App() {
+//   const [web3, setWeb3] = useState(null);
+//   const [accounts, setAccounts] = useState([]);
+//   const [selectedContract, setSelectedContract] = useState(null);
+//   const [ABIs, setABIs] = useState({});
 
 //   useEffect(() => {
-//     const init = async () => {
-//       try {
-//         const networkId = await web3.eth.net.getId();
-//         console.log(networkId)
-//         const deployedNetwork = UserListContract.networks[networkId];
-//         const instance = new web3.eth.Contract(
-//           UserListContract.abi,
-//           deployedNetwork && deployedNetwork.address,
-//         );
-
-//         setContract(instance);
-//         loadUsers(instance);
-//       } catch (error) {
-//         alert('Failed to load accounts or contract.');
-//         console.error(error);
+//     const initWeb3 = async () => {
+//       if (window.ethereum) {
+//         const web3Instance = new Web3(window.ethereum);
+//         setWeb3(web3Instance);
+//         try {
+//           await window.ethereum.request({ method: "eth_requestAccounts" });
+//           const accounts = await web3Instance.eth.getAccounts();
+//           setAccounts(accounts);
+//         } catch (err) {
+//           console.error("Error connecting to Metamask:", err);
+//         }
+//       } else {
+//         console.error("Metamask not found");
 //       }
 //     };
+//     initWeb3();
+//   }, []);
 
-//     if (web3 && accounts) {
-//       init();
+//   useEffect(() => {
+//     if (deployedContracts && Object.keys(deployedContracts).length > 0) {
+//       const contractABIs = {};
+//       for (const contractType in deployedContracts) {
+//         contractABIs[contractType] = deployedContracts[contractType].abi;
+//       }
+//       setABIs(contractABIs);
 //     }
-//   }, [web3, accounts]);
+//   }, []);
 
-//   // ... rest of the component
-
-//   const loadUsers = async (instance) => {
-//     const userCount = await instance.methods.userCount().call();
-
-//     let users = {};
-//     for (let i = 1; i <= userCount; i++) {
-//       const user = await instance.methods.users(i).call();
-//       users[user.id] = user;
+//   const handleContractSelection = (e) => {
+//     const contractAddress = e.target.value;
+//     if (contractAddress === "") {
+//       setSelectedContract(null);
+//     } else {
+//       const contractData = deployedContracts[e.target.name].find(
+//         (contract) => contract.contractAddress === contractAddress
+//       );
+//       setSelectedContract(contractData);
 //     }
-
-//     setUsers(users);
-//     setUserCount(userCount);
-//   };
-
-//   const addUser = async () => {
-//     await contract.methods.addUser(newName).send({ from: accounts[0] });
-//     loadUsers(contract);
-//   };
-
-//   const updateUser = async () => {
-//     await contract.methods.updateUser(updateId, updateName).send({ from: accounts[0] });
-//     loadUsers(contract);
 //   };
 
 //   return (
 //     <div className="App">
-//       <h1>User List dApp</h1>
-//       <hr />
-//       <h2>Add User</h2>
-//       <input
-//         value={newName}
-//         onChange={(e) => setNewName(e.target.value)}
-//         placeholder="Enter user name"
-//       />
-//       <button onClick={addUser}>Add User</button>
-//       <hr />
-//       <h2>Update User</h2>
-//       <input
-//         value={updateId}
-//         onChange={(e) => setUpdateId(e.target.value)}
-//         placeholder="Enter user ID"
-//       />
-//       <input
-//         value={updateName}
-//         onChange={(e) => setUpdateName(e.target.value)}
-//         placeholder="Enter new user name"
-//       />
-//       <button onClick={updateUser}>Update User</button>
-//       <hr />
-//       <h2>User List</h2>
-//       <ul>
-//         {Object.values(users).map((user) => (
-//           <li key={user.id}>
-//             ID: {user.id} - Name: {user.name}
-//           </li>
-//         ))}
-//       </ul>
+//       <h1>Remix-like IDE</h1>
+//       <h2>Select a contract to interact with:</h2>
+//       {Object.keys(deployedContracts).map((contractType) => (
+//         <div key={contractType}>
+//           <h3>{contractType}</h3>
+//           <select name={contractType} onChange={handleContractSelection}>
+//             <option value="">Select a contract instance</option>
+//             {deployedContracts[contractType].map((contract) => (
+//               <option key={contract.contractAddress} value={contract.contractAddress}>
+//                 {contract.contractAddress}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+//       ))}
+//       {selectedContract && (
+//         <ContractInteraction web3={web3} contractData={selectedContract} ABIs={ABIs} />
+//       )}
 //     </div>
 //   );
-
 // }
 
 // export default App;
 
-
-
 import React, { useState, useEffect } from 'react';
-import UserListContract from './contracts/UserList.json';
-import getWeb3 from './getWeb3';
+import Web3 from 'web3';
+import "./App.css";
+import ContractsDropdown from './components/ContractsDropdown';
+import ContractMethods from './components/ContractMethods';
+import deployedContracts from './deployedContracts.json';
+import PublicVariableDisplay from './components/PublicVariableDisplay';
 
-import './App.css';
-
-const App = () => {
+function App() {
+  const [selectedContract, setSelectedContract] = useState(null);
   const [web3, setWeb3] = useState(null);
-  const [accounts, setAccounts] = useState(null);
-  const [contract, setContract] = useState(null);
-  const [users, setUsers] = useState({});
-  const [userCount, setUserCount] = useState(0);
-  const [newName, setNewName] = useState('');
-  const [updateId, setUpdateId] = useState('');
-  const [updateName, setUpdateName] = useState('');
+
+  const [runTime, setRunTime] = useState(10);
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const web3 = await getWeb3();
-        const accounts = await web3.eth.getAccounts();
-        console.log(accounts)
-        
-        const networkId = await web3.eth.net.getId();
-        console.log(networkId)
-
-        console.log(UserListContract.networks)
-        const deployedNetwork = UserListContract.networks[5777];
-        console.log(deployedNetwork)
-        const instance = await new web3.eth.Contract(
-          UserListContract.abi,
-          deployedNetwork && deployedNetwork.address,
-        );
-          console.log(instance)
-        setWeb3(web3);
-        setAccounts(accounts);
-        setContract(instance);
-
-        loadUsers(instance);
-      } catch (error) {
-        alert('Failed to load web3, accounts, or contract.');
-        console.error(error);
-      }
-    };
-
-    init();
+    const web3Instance = new Web3(window.ethereum);
+    setWeb3(web3Instance);
   }, []);
 
-  const loadUsers = async (instance) => {
-    const userCount = await instance.methods.userCount().call();
+  const handleContractSelect = (index) => {
+    setSelectedContract(deployedContracts[index]);
+  };
 
-    let users = {};
-    for (let i = 1; i <= userCount; i++) {
-      const user = await instance.methods.users(i).call();
-      users[user.id] = user;
+  const handleExecute = async (contract, methodName, inputs) => {
+    if (!web3) return;
+
+    const contractInstance = new web3.eth.Contract(
+      contract.abi,
+      contract.address
+    );
+    const accounts = await web3.eth.getAccounts();
+    const method = contractInstance.methods[methodName];
+
+    if (!method) {
+      console.error(`Method ${methodName} not found on contract`);
+      return;
     }
 
-    setUsers(users);
-    setUserCount(userCount);
-  };
-
-  const addUser = async () => {
-    await contract.methods.addUser(newName).send({ from: accounts[0] });
-    loadUsers(contract);
-  };
-
-  const updateUser = async () => {
-    await contract.methods.updateUser(updateId, updateName).send({ from: accounts[0] });
-    loadUsers(contract);
+    const inputValues = Object.values(inputs);
+    try {
+      await method(...inputValues).send({ from: accounts[0] });
+      console.log('Method executed successfully');
+    } catch (error) {
+      console.error('Error executing method:', error);
+    }
   };
 
   return (
     <div className="App">
-      <h1>User List dApp</h1>
-      <hr />
-      <h2>Add User</h2>
-      <input
-        value={newName}
-        onChange={(e) => setNewName(e.target.value)}
-        placeholder="Enter user name"
+      <h1>Contract Explorer</h1>
+      <ContractsDropdown
+        contracts={deployedContracts}
+        onSelect={handleContractSelect}
       />
-      <button onClick={addUser}>Add User</button>
-      <hr />
-      <h2>Update User</h2>
-      <input
-        value={updateId}
-        onChange={(e) => setUpdateId(e.target.value)}
-        placeholder="Enter user ID"
-      />
-      <input
-        value={updateName}
-        onChange={(e) => setUpdateName(e.target.value)}
-        placeholder="Enter new user name"
-      />
-      <button onClick={updateUser}>Update User</button>
-      <hr />
-      <h2>User List</h2>
-      <ul>
-        {Object.values(users).map((user) => (
-          <li key={user.id}>
-            ID: {user.id} - Name: {user.name}
-          </li>
-        ))}
-      </ul>
+      {selectedContract && (
+        <>
+
+        <div>
+            <label htmlFor="runTime">Run Time (seconds): </label>
+            <input
+              type="number"
+              id="runTime"
+              value={runTime}
+              onChange={(e) => setRunTime(e.target.value)}
+            />
+          </div>
+
+          <ContractMethods
+            contract={selectedContract}
+            onExecute={handleExecute}
+            runTime = {runTime}
+          />
+          <PublicVariableDisplay contract={selectedContract} web3={web3} />
+        </>
+      )}
     </div>
   );
-};
+
+}
 
 export default App;
