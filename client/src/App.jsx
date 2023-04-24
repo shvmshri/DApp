@@ -86,55 +86,136 @@ import deployedContracts from './deployedContracts.json';
 import PublicVariableDisplay from './components/PublicVariableDisplay';
 
 function App() {
+
+  const [isConnected, setIsConnected] = useState(false);
+  const connectToMetaMask = async () => {
+    if (window.ethereum) {
+      try {
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        setIsConnected(true);
+      } catch (err) {
+        console.error("Error connecting to MetaMask:", err);
+      }
+    } else {
+      console.error("MetaMask not found");
+    }
+  };
+
   const [selectedContract, setSelectedContract] = useState(null);
   const [web3, setWeb3] = useState(null);
 
-  const [runTime, setRunTime] = useState(10);
+  //To handle multiple accounts
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState(null);
+
+
+  // const [runTime, setRunTime] = useState(10);
 
   useEffect(() => {
     const web3Instance = new Web3(window.ethereum);
     setWeb3(web3Instance);
   }, []);
 
+  //To handle multiple accounts
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      if (web3 && isConnected) {
+        const fetchedAccounts = await web3.eth.getAccounts();
+        setAccounts(fetchedAccounts);
+      }
+    };
+    fetchAccounts();
+  }, [web3,isConnected]);
+
+  console.log(accounts)
+
+  const handleAccountSelect = (index) => {
+    setSelectedAccount(accounts[index]);
+  };
+
+/////////
+
   const handleContractSelect = (index) => {
     setSelectedContract(deployedContracts[index]);
   };
 
-  const handleExecute = async (contract, methodName, inputs) => {
+  const handleExecute = async (contract, methodName, inputs, selectedAccount, etherAmount) => {
     if (!web3) return;
 
-    const contractInstance = new web3.eth.Contract(
-      contract.abi,
-      contract.address
-    );
-    const accounts = await web3.eth.getAccounts();
-    const method = contractInstance.methods[methodName];
+    
+    // const accounts = await web3.eth.getAccounts();
+    // console.log("accounts:")
+    // console.log(accounts)
+    // const method = contractInstance.methods[methodName];
 
-    if (!method) {
-      console.error(`Method ${methodName} not found on contract`);
-      return;
-    }
+    // if (!method) {
+    //   console.error(`Method ${methodName} not found on contract`);
+    //   return;
+    // }
 
-    const inputValues = Object.values(inputs);
-    try {
-      await method(...inputValues).send({ from: accounts[0] });
-      console.log('Method executed successfully');
-    } catch (error) {
-      console.error('Error executing method:', error);
-    }
+    // const inputValues = Object.values(inputs);
+    // try {
+    //   await method(...inputValues).send({ from: selectedAccount });
+    //   console.log('Method executed successfully');
+    // } catch (error) {
+    //   console.error('Error executing method:', error);
+    // }
+
+
+///////////
+
+const contractInstance = new web3.eth.Contract(contract.abi, contract.address);
+  const method = contractInstance.methods[methodName](...Object.values(inputs));
+  const gas = await method.estimateGas({ from: selectedAccount, value: web3.utils.toWei(etherAmount, 'ether') });
+
+  const transactionParameters = {
+    to: contract.address,
+    from: selectedAccount,
+    gas: web3.utils.toHex(gas),
+    gasPrice: web3.utils.toHex(await web3.eth.getGasPrice()),
+    data: method.encodeABI(),
+    value: web3.utils.toHex(web3.utils.toWei(etherAmount, 'ether')),
+  };
+
+  await window.ethereum.request({
+    method: 'eth_sendTransaction',
+    params: [transactionParameters],
+  });
+
   };
 
   return (
     <div className="App">
+
+
+{!isConnected && (
+<button onClick={connectToMetaMask}>Connect to MetaMask</button>
+)}
+
+
+{accounts.length > 0 && (
+  <div>
+    <h3>Select an account</h3>
+    <select onChange={(e) => handleAccountSelect(e.target.value)}>
+      <option value="">Select an account</option>
+      {accounts.map((account, index) => (
+        <option key={index} value={index}>
+          {account}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
+
       <h1>Contract Explorer</h1>
       <ContractsDropdown
         contracts={deployedContracts}
         onSelect={handleContractSelect}
       />
-      {selectedContract && (
+      {selectedContract && selectedAccount && (
         <>
 
-        <div>
+        {/* <div>
             <label htmlFor="runTime">Run Time (seconds): </label>
             <input
               type="number"
@@ -142,14 +223,14 @@ function App() {
               value={runTime}
               onChange={(e) => setRunTime(e.target.value)}
             />
-          </div>
+          </div> */}
 
           <ContractMethods
             contract={selectedContract}
             onExecute={handleExecute}
-            runTime = {runTime}
+            selectedAccount={selectedAccount}
           />
-          <PublicVariableDisplay contract={selectedContract} web3={web3} />
+          <PublicVariableDisplay contract={selectedContract} web3={web3} selectedAccount={selectedAccount} />
         </>
       )}
     </div>
