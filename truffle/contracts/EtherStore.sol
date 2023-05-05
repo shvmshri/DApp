@@ -8,21 +8,6 @@ contract EtherStore {
         balances[msg.sender] += msg.value;
     }
 
-
-// function withdraw() public {
-//     uint256 bal = balances[msg.sender];
-//     require(bal >= 0, "Balance >= 0 needed");
-
-//     address payable recipient = msg.sender;
-//     uint256 balBN = web3.utils.toBN(bal);
-
-//     (bool sent, ) = recipient.call{value: balBN}("");
-//     require(sent, "Failed to send Ether");
-
-//     balances[msg.sender] = 0;
-// }
-
-
     function withdraw() public {
         uint256 bal = balances[msg.sender];
         require(bal >= 0, "Balance >= 0 needed");

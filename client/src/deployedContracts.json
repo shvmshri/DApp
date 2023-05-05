@@ -1,7 +1,7 @@
 [
   
     {
-      "address": "0xd7A4a8A77327Ba5e3A9B50e2ed82DC1dC82A32aD",
+      "address": "0x3B4e06b077F241e7514f9BA94D0Dc976EC25C249",
       "name": "Contract1",
       "abi":  [
         {
@@ -61,7 +61,7 @@
   ,
   
     {
-      "address": "0x1D937CD3354F69e1dAbBFdCBF3DB418E0Bd0C5d7",
+      "address": "0xa53Ca5cf8c1c41B8BDAa5b671828763640dF0e8f",
       "name": "Contract2",
       "abi":  [
         {
@@ -122,7 +122,7 @@
   ,
  
     {
-      "address": "0x67a22d7c09C9446DFf575C2163dcE68B8115870c",
+      "address": "0x15910dD742851c26774E4F41Ad0834681aBFb128",
       "name": "Contract3",
       "abi": [
         {
@@ -210,7 +210,7 @@
       ]
     },
     {
-      "address" : "0xE3a21952A608C70cB094773701590B16274ebAF1",
+      "address" : "0x60d6d84F1791bFbC12Da467989B78a3e1fC10204",
       "name" : "EtherStore",
       "abi"  : [
         {
@@ -265,7 +265,7 @@
       ]
     },
     {
-      "address" : "0xcF39469Ac83f2e0140a4ecb139923c9E790F4B48",
+      "address" : "0x54967E5f47752B21f6578e39c93b835578A87ABc",
       "name" : "Attack",
       "abi" : [
         {
